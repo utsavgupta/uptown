@@ -29,6 +29,7 @@ of the project.
 Execute the following commands commands at the command prompt to build and test
 the project.
 
-1. `$ make driver.c`
-2. `$ lib/install_db ./test.db 100`
-3. `$ lib/uptown ./test.db`
+1. `$ mkdir lib`
+2. `$ make driver.c`
+3. `$ lib/install_db ./test.db 100`
+4. `$ lib/uptown ./test.db`
