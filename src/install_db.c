@@ -36,11 +36,11 @@ int main(int argc, char **argv)
 
   if(create_data_store(argv[1], size))
   {
-    printf("done\n");
+    printf("\033[92mOK\033[0m\n");
   }
   else
   {
-    printf("fail\n");
+    printf("\033[91mFAIL\033[0m\n");
   }
 
   return 0;
