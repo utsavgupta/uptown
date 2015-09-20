@@ -18,5 +18,8 @@ core.c:
 install_db.c: create_data_store.c
 	gcc -ggdb -I ./inc -o ./lib/install_db ./lib/create_data_store.o ./src/install_db.c
 
+lru_cache.c:
+	gcc -ggdb -I ./inc -o ./lib/lru_cache.test ./src/lru_cache.c
+
 driver.c: all
 	gcc -ggdb -I ./inc -o ./lib/uptown ./lib/create_data_store.o ./lib/utils.o ./lib/db_io.o ./lib/hash_functions.o ./lib/core.o ./src/driver.c
