@@ -8,6 +8,9 @@ typedef struct _page
   struct _page *next;
 }page;
 
+void print_cache(); // for testing
 void free_cache();
+char* lookup_cache(char* , unsigned int);
+void write_to_cache(db_entry*, unsigned int);
 
 #endif

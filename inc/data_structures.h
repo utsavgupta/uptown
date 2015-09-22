@@ -9,4 +9,9 @@ typedef struct _db_entry{
   char value[100];
 }db_entry;
 
+typedef enum _storage_policy{
+  CACHED,
+  DIRECT
+}storage_policy;
+
 #endif

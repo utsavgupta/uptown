@@ -4,16 +4,26 @@
 #include "data_structures.h"
 #include "hash_functions.h"
 #include "db_io.h"
+#include "lru_cache.h"
 
-int initiate_write(FILE *fp, db_entry *entry, const char *key, const char *value, size_t size, long id)
+#define CACHE_CAPACITY 5
+
+int initiate_write(FILE *fp, db_entry *entry, char *key, char *value, size_t size, long id, storage_policy policy)
 {
   strcpy(entry->key, key);
   strcpy(entry->value, value);
 
   if(write_record(fp, size, entry, id))
+  {
+    if(policy == CACHED)
+      write_to_cache(entry, CACHE_CAPACITY);
+    
     return 1;
+  }
   else
+  {
     return 0;
+  }
 }
 
 int shallow_copy_entry(db_entry *from, db_entry *to)
@@ -24,7 +34,7 @@ int shallow_copy_entry(db_entry *from, db_entry *to)
   strcpy(to->value, from->value);
 }
 
-int add(FILE *fp, const char *key, const char *value, size_t size)
+int add(FILE *fp, char *key, char *value, size_t size, storage_policy policy)
 {
   long id, k = 1;
   db_entry entry;
@@ -33,14 +43,14 @@ int add(FILE *fp, const char *key, const char *value, size_t size)
   {
     return 0;
   }
-
+  
   id = hash_of(key, size);
 
   read_record(fp, size, &entry, id);
 
   if(strcmp(entry.key, key) == 0 || strcmp(entry.key, "") == 0)
   {
-    return initiate_write(fp, &entry, key, value, size, id);
+    return initiate_write(fp, &entry, key, value, size, id, policy);
   }
   else
   {
@@ -51,7 +61,7 @@ int add(FILE *fp, const char *key, const char *value, size_t size)
 
       if(strcmp(entry.key, key) == 0 || strcmp(entry.key, "") == 0)
       {
-        return initiate_write(fp, &entry, key, value, size, (id + k * k) % size);
+        return initiate_write(fp, &entry, key, value, size, (id + k * k) % size, policy);
       }
 
       k++;
@@ -66,7 +76,7 @@ int add(FILE *fp, const char *key, const char *value, size_t size)
 
       if(strcmp(entry.key, key) == 0 || strcmp(entry.key, "") == 0)
       {
-        return initiate_write(fp, &entry, key, value, size, (id + k) % size);
+        return initiate_write(fp, &entry, key, value, size, (id + k) % size, policy);
       }
 
       k++;
@@ -77,16 +87,29 @@ int add(FILE *fp, const char *key, const char *value, size_t size)
   return 0;
 }
 
-int get(FILE *fp, const char *key, db_entry *entry, size_t size)
+int get(FILE *fp, char *key, db_entry *entry, size_t size, storage_policy policy)
 {
   long id, k = 1;
   db_entry tmp;
+  char *cached_value;
 
   if(strcmp(key, "") == 0 || fp == NULL)
   {
     return 0;
   }
 
+  // Perform cache lookup
+  if(policy == CACHED){
+    cached_value = lookup_cache(key, CACHE_CAPACITY);
+
+    if(cached_value != NULL){
+      strcpy(entry->key, key);
+      strcpy(entry->value, cached_value);
+      
+      return 1;
+    }
+  }
+  
   id = hash_of(key, size);
 
   read_record(fp, size, &tmp, id);
@@ -94,7 +117,8 @@ int get(FILE *fp, const char *key, db_entry *entry, size_t size)
   if(strcmp(tmp.key, key) == 0)
   {
     shallow_copy_entry(&tmp, entry);
-
+    write_to_cache(entry, CACHE_CAPACITY);
+    
     return 1;
   }
   else
@@ -107,7 +131,8 @@ int get(FILE *fp, const char *key, db_entry *entry, size_t size)
       if(strcmp(tmp.key, key) == 0)
       {
         shallow_copy_entry(&tmp, entry);
-
+        write_to_cache(entry, CACHE_CAPACITY);
+        
         return 1;
       }
 
@@ -124,7 +149,8 @@ int get(FILE *fp, const char *key, db_entry *entry, size_t size)
       if(strcmp(tmp.key, key) == 0)
       {
         shallow_copy_entry(&tmp, entry);
-
+        write_to_cache(entry, CACHE_CAPACITY);
+        
         return 1;
       }
 
@@ -136,7 +162,7 @@ int get(FILE *fp, const char *key, db_entry *entry, size_t size)
   return 0;
 }
 
-int drop(FILE *fp, const char *key, size_t size)
+int drop(FILE *fp, char *key, size_t size, storage_policy policy)
 {
   long id, k = 1;
   db_entry tmp, empty;
@@ -152,7 +178,7 @@ int drop(FILE *fp, const char *key, size_t size)
 
   if(strcmp(tmp.key, key) == 0)
   {
-    return initiate_write(fp, &empty, "", "", size, id);
+    return initiate_write(fp, &empty, "", "", size, id, policy);
   }
   else
   {
@@ -163,7 +189,7 @@ int drop(FILE *fp, const char *key, size_t size)
 
       if(strcmp(tmp.key, key) == 0)
       {
-        return initiate_write(fp, &empty, "", "", size, (id + k * k) % size);
+        return initiate_write(fp, &empty, "", "", size, (id + k * k) % size, policy);
       }
 
       k++;
@@ -178,7 +204,7 @@ int drop(FILE *fp, const char *key, size_t size)
 
       if(strcmp(tmp.key, key) == 0)
       {
-        return initiate_write(fp, &empty, "", "", size, (id + k) % size);
+        return initiate_write(fp, &empty, "", "", size, (id + k) % size, policy);
       }
 
       k++;

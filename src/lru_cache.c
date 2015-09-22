@@ -4,6 +4,8 @@
 #include "data_structures.h"
 #include "lru_cache.h"
 
+// NOTE: Need to add a function for evicting in-memory pages while deleting key value pairs from data store
+
 page *head = NULL;
 page *tail = NULL;
 int current_size = 0;
@@ -21,17 +23,29 @@ page* create_from_db_entry(db_entry *entry)
   return p;
 }
 
-/* free all the pages that were allocated during runtime */
-void free_cache(){
-  page *next, *current;
-
-  next = head;
-
-  while(next != NULL) {
-    current = next;
-    next = current->next;
-    free(current);
+int evict_page(unsigned int capacity)
+{
+  page *oldest;
+  
+  if(current_size < 1){
+    return 0;
   }
+
+  oldest = tail;
+  
+  if(tail->prev == NULL){
+    head = tail = NULL;
+  }
+  else{
+    tail = tail->prev;
+    tail->next = NULL;
+  }
+
+  free(oldest);
+
+  current_size--;
+
+  return 1;
 }
 
 int swap_in_page(page *p, unsigned int capacity)
@@ -66,31 +80,6 @@ int swap_in_page(page *p, unsigned int capacity)
   return 1;
 }
 
-int evict_page(unsigned int capacity)
-{
-  page *oldest;
-  
-  if(current_size < 1){
-    return 0;
-  }
-
-  oldest = tail;
-  
-  if(tail->prev == NULL){
-    head = tail = NULL;
-  }
-  else{
-    tail = tail->prev;
-    tail->next = NULL;
-  }
-
-  free(oldest);
-
-  current_size--;
-
-  return 1;
-}
-
 int access_page(page *p, unsigned int capacity)
 {
   page *next, *prev;
@@ -103,6 +92,12 @@ int access_page(page *p, unsigned int capacity)
 
   if(p == head){
     return 1;
+  }
+
+  // update tail pointer if item being accessed is the last element
+  
+  if(p == tail){
+    tail = p->prev;
   }
   
   prev = p->prev;
@@ -119,54 +114,75 @@ int access_page(page *p, unsigned int capacity)
   return swap_in_page(p, capacity);
 }
 
-/* test code */
+char* lookup_cache(char* key, unsigned int capacity)
+{
+  page *current;
+  
+  if(capacity < 1 || head == NULL){
+    return NULL;
+  }
 
-void display()
+  current = head;
+
+  while(current != NULL){
+    if(strcmp(current->key, key) == 0){
+      access_page(current, capacity);
+      return current->value;
+    }
+
+    current = current->next;
+  }
+
+  return NULL;
+}
+
+void write_to_cache(db_entry *entry, unsigned int capacity)
+{
+  page *current;
+  
+  current = head;
+
+  while(current != NULL){
+    if(strcmp(current->key, entry->key) == 0){
+      strcpy(current->value, entry->value);
+      access_page(current, capacity);
+      return;
+    }
+
+    current = current->next;
+  }
+
+  current = create_from_db_entry(entry);
+  swap_in_page(current, capacity);
+}
+
+/* free all the pages that were allocated during runtime */
+void free_cache(){
+  page *next, *current;
+
+  next = head;
+
+  while(next != NULL) {
+    current = next;
+    next = current->next;
+    free(current);
+  }
+}
+
+// for testing
+
+void print_cache()
 {
   page *current;
 
   current = head;
 
-  while(current != NULL){
-    printf("%s ", current->value);
+  printf("[");
+
+  while(current){
+    printf("%s, ", current->key);
     current = current->next;
   }
 
-  printf("\n");
-}
-
-int main()
-{
-  page *p1 = (page *) malloc(sizeof(page));
-  page *p2 = (page *) malloc(sizeof(page));
-  page *p3 = (page *) malloc(sizeof(page));
-  page *p4 = (page *) malloc(sizeof(page));
-
-  strcpy(p1->value, "a");
-  strcpy(p2->value, "b");
-  strcpy(p3->value, "c");
-  strcpy(p4->value, "d");
-
-  swap_in_page(p1, 3);
-  display();
-  swap_in_page(p2, 3);
-  display();
-  swap_in_page(p3, 3);
-  display();
-  swap_in_page(p4, 3);
-  display();
-  access_page(p2, 3);
-  display();
-  access_page(p4, 3);
-  display();
-  access_page(p2, 3);
-  display();
-  access_page(p3, 3);
-  display();
-  access_page(p3, 3);
-  display();
-  
-  free_cache();
-  
-  return 0;
+  printf("]\n");
 }

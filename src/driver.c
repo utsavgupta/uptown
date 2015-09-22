@@ -4,6 +4,9 @@
 #include "data_structures.h"
 #include "core.h"
 #include "db_io.h"
+#include "lru_cache.h"
+
+#define CACHING CACHED
 
 int flush_stdin()
 {
@@ -42,7 +45,7 @@ int main(int argc, char **argv)
 
   while(1)
   {
-    printf("Please select an option:\n1. Add\n2. Fetch\n3. Drop\n4. Exit\n");
+    printf("Please select an option:\n1. Add\n2. Fetch\n3. Print cache\n4. Exit\n");
 
     c = getchar();
 
@@ -52,7 +55,7 @@ int main(int argc, char **argv)
         printf("Please enter the key value pair: ");
         scanf("%s %s", entry.key, entry.value);
 
-        if(!add(fp, entry.key, entry.value, header.size))
+        if(!add(fp, entry.key, entry.value, header.size, CACHING))
         {
           printf("failed\n");
         }
@@ -63,7 +66,7 @@ int main(int argc, char **argv)
         printf("Please enter the key: ");
         scanf("%s", entry.key);
 
-        if(get(fp, entry.key, &entry, header.size))
+        if(get(fp, entry.key, &entry, header.size, CACHING))
         {
           printf("%s => %s\n", entry.key, entry.value);
         }
@@ -75,20 +78,26 @@ int main(int argc, char **argv)
 
       case '3':
 
-        printf("Please enter the key: ");
+        /*printf("Please enter the key: ");
         scanf("%s", entry.key);
 
-        if(drop(fp, entry.key, header.size))
+        if(drop(fp, entry.key, header.size, CACHING))
         {
           printf("dropped\n");
         }
         else
         {
           printf("Key not found.\n");
-        }
+          }*/
+
+        print_cache();
         break;
 
       case '4':
+
+        if(CACHING == CACHED)
+          free_cache();
+        
         goto close_and_exit;
 
         break;

@@ -1,7 +1,7 @@
 #ifndef _UPTOWN_CORE
 
-int add(FILE *, const char *, const char *, size_t);
-int get(FILE *, const char *, db_entry *, size_t);
-int drop(FILE *, const char *, size_t);
+int add(FILE *, char *, char *, size_t, storage_policy);
+int get(FILE *,  char *, db_entry *, size_t, storage_policy);
+int drop(FILE *, char *, size_t, storage_policy);
 
 #endif
