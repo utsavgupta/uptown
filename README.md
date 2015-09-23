@@ -9,7 +9,7 @@ To create a simple key value storage system in C.
 1. [Hashing](https://en.wikipedia.org/wiki/Hash_table)
 2. [Quadratic probing](https://en.wikipedia.org/wiki/Quadratic_probing)
 3. [Linear probing](https://en.wikipedia.org/wiki/Linear_probing)
-4. [LRU Caching](https://en.wikipedia.org/wiki/Cache_algorithms)
+4. [LRU Cache](https://en.wikipedia.org/wiki/Cache_algorithms)
 
 ## Todo
 
